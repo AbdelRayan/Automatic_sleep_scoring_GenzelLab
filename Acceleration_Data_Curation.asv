@@ -1,0 +1,24 @@
+% acceleration data 
+% the aim of this script is to do experimentation on the accelerometer data
+% and how to analyze it the best way 
+
+clear all; close all; clc 
+% 1. uploading the accelerometer files 
+[file,path]=uigetfile('*.cont*','Select the accelerometer file(s) (select multiple if possible)', 'MultiSelect', 'on');
+patIDacc = {};
+for jj=1:length(file)
+    tmp = file(jj);
+    patIDacc{jj} = strcat([path,tmp{1}]);
+end
+
+% 2. reading the data from the openephys 
+ACC_RES = [];
+disp('Loading and downsampling of the accelerometer data')
+for jj=1:length(patIDacc)
+    [Dataacc, ~, ~] = load_open_ephys_data_faster(patIDacc{jj});
+%     Dataacc=filtfilt(b,a,Dataacc);
+%     Dataacc=downsample(Dataacc,acq_fhz/500);
+    ACC_RES = [ACC_RES  Dataacc]; 
+end
+%% extracting the x, y and z coordinates 
+g
