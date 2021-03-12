@@ -15,10 +15,61 @@ end
 ACC_RES = [];
 disp('Loading and downsampling of the accelerometer data')
 for jj=1:length(patIDacc)
-    [Dataacc, ~, ~] = load_open_ephys_data_faster(patIDacc{jj});
+    [Dataacc, TimeVect, ~] = load_open_ephys_data_faster(patIDacc{jj});
 %     Dataacc=filtfilt(b,a,Dataacc);
 %     Dataacc=downsample(Dataacc,acq_fhz/500);
     ACC_RES = [ACC_RES  Dataacc]; 
 end
+disp('Finished reading the accelerometer data')
+%% important parameters for further computation 
+Ts      = mean(diff(TimeVect)); % this the period 
+Fs      = 1/Ts;                 % the sampling frequency
 %% extracting the x, y and z coordinates 
-g
+g_x     = ACC_RES(:,1);
+g_y     = ACC_RES(:,2);
+g_z     = ACC_RES(:,3);
+%% calculate the g-level norm
+g = sqrt(g_x.^2 + g_y.^2 + g_z.^2);
+%% performin a Welch power spectrum analysis of the g-norm signal 
+[accPow,f]=pwelch(g,[],[],[1:0.1:10],Fs); % because I did not downsample the signal so I am limiting the frequency range 
+% from the power spectrum, I notice a fundmental frequency up 3 Hz
+%% filtering the g-norm signal I am following the method from Carr et al in Nature 
+% Zero-Delay Filter Options for G-level filtering
+HPF = 0.01;     % Half Power Frequency (HPF) [Hz]
+% Other Filter options
+FilterOptions = {'lowpassiir','FilterOrder',12,'DesignMethod','butter'};
+%% designing a filter 
+% Design the filter
+d1 = designfilt(FilterOptions{:},'HalfPowerFrequency',HPF);
+% Do the filtering
+g_x_filt = filtfilt(d1,g_x);
+g_y_filt = filtfilt(d1,g_y);
+g_z_filt = filtfilt(d1,g_z);
+%
+%% Calculate the filtered G-level (norm of the filtered g vector)
+g_filt = sqrt(g_x_filt.^2 + g_y_filt.^2 + g_z_filt.^2);
+%% I will be trying to use HMM to classify sleep and awake 
+
+dataMat = [g g_filt];
+% The amplitude envelope is computed using the hilbert transform
+envelopes = abs(hilbert(dataMat)');
+
+% Here we generate an amplitude threshold using the Shin 2018 method
+threshold = 2*median(envelopes,2);
+
+%% HMM
+ options = struct();
+    options.initrep = 10; % Set to be large as this is a short simulation
+    options.K = 2;
+    options.standardise = 0;
+    options.verbose = 1;
+    options.Fs = sample_rate;
+    options.useMEX = 1;
+    options.zeromean = 0;
+    options.dropstates = 1;
+    options.order = 0;
+    options.DirichletDiag = 1e10; % set very large as we don't have much data
+
+    % HMM inference - we only store the Gamma time-course of posterior probabilities
+    T = length(data);
+    [hmm, Gamma_emb{ii},~,vpath] = hmmmar(envelopes(ii,:)',T,options);

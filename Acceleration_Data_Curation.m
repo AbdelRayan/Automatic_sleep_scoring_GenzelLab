@@ -48,3 +48,40 @@ g_z_filt = filtfilt(d1,g_z);
 %
 %% Calculate the filtered G-level (norm of the filtered g vector)
 g_filt = sqrt(g_x_filt.^2 + g_y_filt.^2 + g_z_filt.^2);
+%% I will be trying to use HMM to classify sleep and awake 
+
+dataMat = [g g_filt];
+% The amplitude envelope is computed using the hilbert transform
+envelopes = abs(hilbert(dataMat)');
+
+% Here we generate an amplitude threshold using the Shin 2018 method
+threshold = 2*median(envelopes,2);
+
+%% HMM
+ options = struct();
+    options.initrep = 2; % Set to be large as this is a short simulation
+    options.K = 2;
+    options.standardise = 0;
+    options.verbose = 1;
+    options.Fs = Fs;
+    options.useMEX = 1;
+    options.zeromean = 0;
+    options.dropstates = 1;
+    options.order = 0;
+    options.DirichletDiag = 1000; % set very large as we don't have much data
+
+    % HMM inference - we only store the Gamma time-course of posterior probabilities
+    T = length(NewAcceleration);
+    [hmm, Gamma_emb{1},~,vpath] = hmmmar(NewAcceleration,T,options);
+    disp('Finished')
+%% I would like here to remove the drifts from the data for better analysis
+NewAcceleration = locdetrend(g_filt,20000,[.1 .05]); 
+envelopes = abs(hilbert(NewAcceleration)');
+%%
+
+% plot(envelopes)
+% histogram(envelopes,0:0.01:2)
+threshold = 2*median(zscore(NewAcceleration));
+plot(zscore(NewAcceleration))
+hold on
+yline(threshold,'r--','LineWidth',2)
