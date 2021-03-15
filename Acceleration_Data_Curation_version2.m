@@ -41,18 +41,22 @@ dataMat = [g_detrend envelopes'];
 threshold = 2*mean(envelopes,2);
 %%
 figure 
-% plot(TimeVectDown,g,'LineWidth',2)
+plot(TimeVectDown,g,'LineWidth',2)
 hold on 
 plot(TimeVectDown,g_detrend,'r','LineWidth',2)
-plot(TimeVectDown,envelopes,'k','LineWidth',2)
+% plot(TimeVectDown,envelopes,'k','LineWidth',2)
 yline(threshold,'b--','LineWidth',2)
 yline(-threshold,'b--','LineWidth',2)
-legend('Raw Signal','Detrended Signal','Envelope')
+% legend('Raw Signal','Detrended Signal','Envelope')
+% legend('Raw Signal','Detrended Signal','Location','Best')
 xlabel('Time [s]')
 ylabel('g-level value')
 box off 
 set(gca,'FontSize',15,'LineWidth',1.5,'FontWeight','bold','FontName','Times')
 set(gcf,'Color','w')
+xlim([480 520])
+axis off
+export_fig('DetrendedAccelerometerDataCloseUp','-jpg','-r300','-q70','-transparent')
 %% running HMM model --> determining the parameters for the model 
 
 options = struct();
@@ -65,7 +69,7 @@ options.useMEX = 1;
 options.zeromean = 0; % changed it from zero 
 options.dropstates = 1;
 options.order = 0;
-options.timelag = 100; % added a time lag in the form of how many samples 
+% options.timelag = 100; % added a time lag in the form of how many samples 
 options.DirichletDiag = 1000; % set very large as we don't have much data
 %%
 % HMM inference - we only store the Gamma time-course of posterior probabilities
@@ -97,3 +101,17 @@ plot(timeVectStates,NewStates,'r.')
 % plot(TimeVectDown,vpath,'k.')
 ylim([0 3])
 xlim([200 1000])
+%% making plots for the meeting on Wednesday 
+g_x = ACC_RES(:,1);
+g_y = ACC_RES(:,2);
+g_z = ACC_RES(:,3);
+g = sqrt(g_x.^2 + g_y.^2 + g_z.^2);
+%% plotting the raw data 
+figure;
+plot(TimeVect,g,'LineWidth',2)
+xlabel('Time [s]')
+ylabel('g-level [a.u.]')
+box off 
+set(gca,'FontSize',15,'LineWidth',1.5,'FontWeight','bold','FontName','Times')
+set(gcf,'Color','w')
+export_fig('RawDataNotDownSampled','-jpg','-r300','-q70','-transparent')
