@@ -60,7 +60,7 @@ export_fig('DetrendedAccelerometerDataCloseUp','-jpg','-r300','-q70','-transpare
 %% running HMM model --> determining the parameters for the model 
 
 options = struct();
-options.initrep = 2; % Set to be large as this is a short simulation
+options.initrep = 5; % Set to be large as this is a short simulation
 options.K = 2;
 options.standardise = 0;
 options.verbose = 1;
@@ -69,7 +69,7 @@ options.useMEX = 1;
 options.zeromean = 0; % changed it from zero 
 options.dropstates = 1;
 options.order = 0;
-% options.timelag = 100; % added a time lag in the form of how many samples 
+options.timelag = 10; % added a time lag in the form of how many samples 
 options.DirichletDiag = 1000; % set very large as we don't have much data
 %%
 % HMM inference - we only store the Gamma time-course of posterior probabilities
@@ -80,10 +80,23 @@ disp('Finished')
 figure
 norm_g = (g_detrend - min(g_detrend)) / ( max(g_detrend) - min(g_detrend) );
 hold on
-area(TimeVectDown,Gamma_emb{1})
+a = area(TimeVectDown(1:end-1),Gamma_emb{1})
 plot(TimeVectDown,norm_g,'k','LineWidth',2)
-yline(threshold,'b--','LineWidth',2)
-yline(-threshold,'b--','LineWidth',2)
+xlabel('Time [s]')
+ylabel('Normalized g-level')
+axis off 
+box off 
+a(1).FaceColor = 'r';
+a(1).FaceAlpha = 0.4;
+a(2).FaceColor = 'b';
+a(2).FaceAlpha = 0.4;
+set(gca,'FontSize',15,'LineWidth',1.5,'FontWeight','bold','FontName','Times')
+set(gcf,'Color','w')
+xlim([950 1050])
+export_fig('AccelerometerSleepWakeHMMCloseUp','-pdf','-r300','-q70','-transparent')
+print(gcf, '-dpdf', 'AccelerometerSleepWakeHMMCloseUp.pdf');
+% yline(threshold,'b--','LineWidth',2)
+% yline(-threshold,'b--','LineWidth',2)
 % plot(TimeVectDown,vpath,'b.')
 % xlim([200 1000])
 %% comparing with real data 
@@ -115,3 +128,4 @@ box off
 set(gca,'FontSize',15,'LineWidth',1.5,'FontWeight','bold','FontName','Times')
 set(gcf,'Color','w')
 export_fig('RawDataNotDownSampled','-jpg','-r300','-q70','-transparent')
+%%
