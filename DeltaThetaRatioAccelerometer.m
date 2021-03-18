@@ -34,7 +34,9 @@ Fs      = 1/Ts;                 % the sampling frequency
 g = sqrt(g_x.^2 + g_y.^2 + g_z.^2);
 TimeVectDown = linspace(0,max(TimeVect),numel(g));
 %% the next step is to remove the drifts from the data to make the analysis easier 
-% g_detrend = locdetrend(g,FsDown,[.1 .01]); 
+g_detrend = locdetrend(g,FsDown,[.1 .01]); 
+%%
+PowAccel = powerEMG( g_detrend', 100,  4, 1 );
 %% creating a histogram for the detrended data 
 [h,n] = hist(g_detrend,-0.03:0.001:0.03);
 figure
@@ -59,7 +61,7 @@ DataPFCDownD = locdetrend(DataPFCDown,1250,[.1 .05]);
 TimeVectDownLFP = linspace(0,max(TimeVect),numel(DataPFCDown));
 %% plotting the ephys data 
 figure 
-plot(TimeVectDownLFP,DataPFCDownD)
+plot(TimeVectDownLFP,DataPFCDown)
 %% computing the delta/theta ration in windows of 4 seconds 
 % divide the data into epochs 
 fs = 1250;
@@ -115,14 +117,14 @@ spk_x       =interp1(TimeVectDown,vpath,...
             MatCell.SpikeMatrix.TimeStampSpike);  
 %% making a scatter 
 figure 
-scatter(log(deltaTheta),log(meanAcceleroEpoch),'.')
+scatter(log(deltaTheta),log(PowAccel),'.')
 xlabel('delta/theta')
 ylabel('Accelerometer')
 set(gca,'FontSize',15,'LineWidth',1.5,'FontWeight','bold','FontName','Times')
 set(gcf,'Color','w')
 set(gca,'FontSize',15,'LineWidth',1.5,'FontWeight','bold','FontName','Times')
 set(gcf,'Color','w')
-export_fig('ScatterACCeleroDeltaTheta','-pdf','-r300','-q70','-transparent')
+% export_fig('ScatterACCeleroDeltaTheta','-pdf','-r300','-q70','-transparent')
 % ylim([-0.03 0.03])
 %% 
 histogram(log(deltaTheta),50)

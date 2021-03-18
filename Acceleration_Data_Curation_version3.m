@@ -1,6 +1,4 @@
-% This is the second version of acceleration data curation --> more
-% organized features and work flow 
-
+%% The aim of this script is to try the approach reported in Santos Lima et al
 clear all; close all; clc 
 % 1. uploading the accelerometer files 
 [file,path]=uigetfile('*.cont*','Select the accelerometer file(s) (select multiple if possible)', 'MultiSelect', 'on');
@@ -27,30 +25,24 @@ FsDown = 20000/NDown;
 g_x = decimate(ACC_RES(:,1),NDown,'FIR');
 g_y = decimate(ACC_RES(:,2),NDown,'FIR');
 g_z = decimate(ACC_RES(:,3),NDown,'FIR');
-%% calculate the g-level norm
-g = sqrt(g_x.^2 + g_y.^2 + g_z.^2);
-% create time vector 
-TimeVectDown = linspace(0,max(TimeVect),numel(g));
-%% computing the spectrum per window 
-PowAccel = powerEMG( g', 100,  4, 1 );
-%% the next step is to remove the drifts from the data to make the analysis easier 
-% g_detrend = locdetrend(g,FsDown,[.1 .01]); 
-% norm_g = (g - min(g)) / ( max(g) - min(g) );
-% envelopes = abs(hilbert(g)');
-% g_detrend = locdetrend(envelopes,FsDown,[.1 .01]); 
-%% creating a data matrix for HMM 
-dataMat = [g_detrend envelopes'];
-%% generating a threshold for the data 
-% Here we generate an amplitude threshold using the Shin 2018 method
-threshold = 2*median(envelopes,2);
-%%
+%% calculate the g-level using the new method
+g_x_mean = mean(g_x);
+g_y_mean = mean(g_y);
+g_z_mean = mean(g_z);
+
+g_sum = (g_x - g_x_mean) + (g_y - g_y_mean) + (g_z - g_z_mean);
+%% locally detrending the data and creating a time vector 
+g_detrend = locdetrend(g_sum,FsDown,[.1 .01]); 
+TimeVectDown = linspace(0,max(TimeVect),numel(g_sum));
+threshold = 2*mean(g_sum);
+%% making a plot to compare and confirm the results 
 figure 
-plot(TimeVectDown,g,'LineWidth',2)
+plot(TimeVectDown,g_sum,'LineWidth',2)
 hold on 
 plot(TimeVectDown,g_detrend,'r','LineWidth',2)
 % plot(TimeVectDown,envelopes,'k','LineWidth',2)
-yline(threshold,'b--','LineWidth',2)
-yline(-threshold,'b--','LineWidth',2)
+% yline(threshold,'b--','LineWidth',2)
+% yline(-threshold,'b--','LineWidth',2)
 % legend('Raw Signal','Detrended Signal','Envelope')
 % legend('Raw Signal','Detrended Signal','Location','Best')
 xlabel('Time [s]')
@@ -88,7 +80,7 @@ a = area(TimeVectDown,Gamma_emb{1})
 plot(TimeVectDown,norm_g,'k','LineWidth',2)
 xlabel('Time [s]')
 ylabel('Normalized g-level')
-axis off 
+% axis off 
 box off 
 a(1).FaceColor = 'r';
 a(1).FaceAlpha = 0.4;
@@ -96,40 +88,10 @@ a(2).FaceColor = 'b';
 a(2).FaceAlpha = 0.4;
 set(gca,'FontSize',15,'LineWidth',1.5,'FontWeight','bold','FontName','Times')
 set(gcf,'Color','w')
-xlim([950 1050])
+% xlim([950 1050])
 % export_fig('AccelerometerSleepWakeHMMCloseUp','-pdf','-r300','-q70','-transparent')
 % print(gcf, '-dpdf', 'AccelerometerSleepWakeHMMCloseUp.pdf');
 % yline(threshold,'b--','LineWidth',2)
 % yline(-threshold,'b--','LineWidth',2)
 % plot(TimeVectDown,vpath,'b.')
 % xlim([200 1000])
-%% comparing with real data 
-state1 = TimeVectDown(vpath ==1);
-state2 = TimeVectDown(vpath == 2);
-NewStates = zeros(1,numel(states));
-NewStates(states ==1 ) = 2;
-NewStates(states > 1 ) = 1;
-%% 
-vpathDown = downsample(vpath,100);
-%% 
-timeVectStates = 1:1:numel(states);
-plot(timeVectStates,NewStates,'r.')
-% hold on 
-% plot(TimeVectDown,vpath,'k.')
-ylim([0 3])
-xlim([200 1000])
-%% making plots for the meeting on Wednesday 
-g_x = ACC_RES(:,1);
-g_y = ACC_RES(:,2);
-g_z = ACC_RES(:,3);
-g = sqrt(g_x.^2 + g_y.^2 + g_z.^2);
-%% plotting the raw data 
-figure;
-plot(TimeVect,g,'LineWidth',2)
-xlabel('Time [s]')
-ylabel('g-level [a.u.]')
-box off 
-set(gca,'FontSize',15,'LineWidth',1.5,'FontWeight','bold','FontName','Times')
-set(gcf,'Color','w')
-export_fig('RawDataNotDownSampled','-jpg','-r300','-q70','-transparent')
-%%
